@@ -1,6 +1,5 @@
-﻿using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography.Xml;
+﻿using System.Security.Cryptography.X509Certificates;
+using X059ValidateTest.Utils;
 using System.Xml;
 
 namespace X059ValidateTest;
@@ -12,9 +11,12 @@ class Program
     const string PublicKeyPath = @"C:\Users\DOIT\Desktop\doit-test-cert-public.pem";
     static void Main(string[] args)
     {
+        //Change Console Output Encoding for letters 
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+
         if (!File.Exists(TargetFilePath))
         {
-            Console.WriteLine("File doesn't exist.");
+            Console.WriteLine("Файла с именем Signed.xml не существует.");
             return;
         }
 
@@ -26,49 +28,28 @@ class Program
         doc.LoadXml(xmlString);
 
         // Load the public key certificate for validation
-        X509Certificate2 pubCert = new X509Certificate2(PublicKeyPath);
-
-        // Validate the XML document's signature using the public key certificate
-        bool isValid = ValidateXmlDocumentWithCertificate(doc, pubCert);
-        Console.WriteLine($"Signature validation result: {isValid}");
-    }
-
-    public static bool ValidateXmlDocumentWithCertificate(XmlDocument doc, X509Certificate2 cert)
-    {
+        X509Certificate2 pubCert;
         try
         {
-            // Initialize SignedXml object for validation
-            SignedXml signedXml = new SignedXml(doc);
-
-            // Locate the <Signature> element in the XML document
-            XmlNode? signatureNode = doc.GetElementsByTagName("Signature")[0];
-
-            if (signatureNode is null)
-            {
-                Console.WriteLine("No Signature node found in the XML document.");
-                return false;
-            }
-
-            // Load the <Signature> element into the SignedXml object
-            signedXml.LoadXml((XmlElement)signatureNode);
-
-            // Check the signature's validity using the public key certificate
-            bool isSignatureValid = signedXml.CheckSignature(cert, true);
-
-            if (!isSignatureValid)
-                Console.WriteLine("The XML signature is invalid.");
-
-            return isSignatureValid;
-        }
-        catch (CryptographicException ex)
-        {
-            Console.WriteLine($"Cryptographic error during signature validation: {ex.Message}");
-            return false;
+            pubCert = new X509Certificate2(PublicKeyPath);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error validating XML signature: {ex.Message}");
-            return false;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Ошибка при загрузке сертификата: {ex.Message}");
+            Console.ResetColor();
+            return;
         }
+
+        // Validate the XML document's signature using the public key certificate
+        Console.WriteLine("Проверка файла Signed.xml на валидность ЭП...\n");
+
+        bool isValid = ValidationUtils.ValidateXmlDocumentWithCertificate(doc, pubCert);
+
+        Console.ForegroundColor = isValid ? ConsoleColor.Green : ConsoleColor.Red;
+        Console.WriteLine(isValid ? "Валидация прошла успешно" : "Не успешная валидация");
+        Console.ResetColor();
     }
+
+   
 }
